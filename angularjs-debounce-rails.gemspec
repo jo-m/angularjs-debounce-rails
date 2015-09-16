@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = "angularjs-debounce-rails"
-  spec.version       = "0.1.0"
+  spec.version       = "0.1.7"
   spec.authors       = ["Jonathan Mueller"]
   spec.email         = ["j.mueller@apoveda.ch"]
   spec.summary       = %q{Gemified version of AngularJS debounce plugin}

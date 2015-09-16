@@ -1,32 +1,24 @@
 'use strict';
 
 angular.module('debounce', [])
-  .value('now', function () {
-    return new Date();
-  })
-  .service('debounce', ['$timeout', 'now', function ($timeout, now) {
-    return function (func, wait, immediate) {
-      var timeout, args, context, timestamp, result;
+  .service('debounce', ['$timeout', function ($timeout) {
+    return function (func, wait, immediate, invokeApply) {
+      var timeout, args, context, result;
       function debounce() {
         /* jshint validthis:true */
         context = this;
         args = arguments;
-        timestamp = now();
         var later = function () {
-          var last = now() - timestamp;
-          if (last < wait) {
-            timeout = $timeout(later, wait - last);
-          } else {
-            timeout = null;
-            if (!immediate) {
-              result = func.apply(context, args);
-            }
+          timeout = null;
+          if (!immediate) {
+            result = func.apply(context, args);
           }
         };
         var callNow = immediate && !timeout;
-        if (!timeout) {
-          timeout = $timeout(later, wait);
+        if (timeout) {
+          $timeout.cancel(timeout);
         }
+        timeout = $timeout(later, wait, invokeApply);
         if (callNow) {
           result = func.apply(context, args);
         }
@@ -39,22 +31,21 @@ angular.module('debounce', [])
       return debounce;
     };
   }])
-  .directive('debounce', ['debounce', function (debounce) {
+  .directive('debounce', ['debounce', '$parse', function (debounce, $parse) {
     return {
       require: 'ngModel',
       priority: 999,
-      scope: {
-        debounce: '@',
-        immediate: '@'
-      },
       link: function ($scope, $element, $attrs, ngModelController) {
+        var debounceDuration = $parse($attrs.debounce)($scope);
+        var immediate = !!$parse($attrs.immediate)($scope);
         var debouncedValue, pass;
         var prevRender = ngModelController.$render.bind(ngModelController);
         var commitSoon = debounce(function (viewValue) {
           pass = true;
+          ngModelController.$$lastCommittedViewValue = debouncedValue;
           ngModelController.$setViewValue(viewValue);
           pass = false;
-        }, parseInt($scope.debounce), $scope.immediate === 'true');
+        }, parseInt(debounceDuration, 10), immediate);
         ngModelController.$render = function () {
           prevRender();
           commitSoon.cancel();
